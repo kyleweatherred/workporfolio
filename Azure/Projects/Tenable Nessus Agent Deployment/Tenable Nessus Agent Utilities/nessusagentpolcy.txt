@@ -1,0 +1,59 @@
+{
+    "mode": "All",
+    "parameters": {},
+    "policyRule": {
+        "if": {
+            "allOf": [
+                {
+                    "field": "type",
+                    "equals": "Microsoft.Compute/virtualMachineScaleSets"
+                },
+                {
+                    "not": {
+                        "field": "tags['NESSUSAGENT:INSTALLED']",
+                        "exists": "true"
+                    }
+                }
+            ]
+        },
+        "then": {
+            "effect": "deployIfNotExists",
+            "details": {
+                "type": "Microsoft.Automation/automationAccounts/runbooks",
+                "existenceCondition": {
+                    "field": "Microsoft.Automation/automationAccounts/runbooks/name",
+                    "equals": "InstallNessusAgent"
+                },
+                "roleDefinitionIds": [
+                    "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+                ],
+                "deployment": {
+                    "properties": {
+                        "mode": "incremental",
+                        "template": {
+                            "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                            "contentVersion": "1.0.0.0",
+                            "resources": [
+                                {
+                                    "type": "Microsoft.Automation/automationAccounts/runbooks",
+                                    "name": "InstallNessusAgent",
+                                    "apiVersion": "2019-06-01",
+                                    "location": "eastus",
+                                    "properties": {
+                                        "runbookType": "PowerShell",
+                                        "logProgress": true,
+                                        "logVerbose": true,
+                                        "publishContentLink": {
+                                            "uri": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/201-vm-diagnostics-extension-windows/RunCommandWindows.ps1",
+                                            "contentVersion": "1.0.0.0"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

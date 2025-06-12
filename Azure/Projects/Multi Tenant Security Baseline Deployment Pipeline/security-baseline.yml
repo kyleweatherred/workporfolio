@@ -1,0 +1,233 @@
+trigger:
+  - main
+
+parameters:
+  - name: selectedTenants
+    type: string
+    default: "ORTIG"
+
+stages:
+# ────────────────────────────────────────────────────────────────────────────
+- stage: DeployCrowdStrike
+  displayName: "Deploy CrowdStrike Sensors"
+  jobs:
+    # ORTIG
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "ORTIG"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-ORTIG-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomation.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "ORTIG"
+        os:          "windows"
+        subscription: "SC-CloudOps-ORTIG-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomation.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+    # Pavaso
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "Pavaso"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-Pavaso-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationpavaso.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "Pavaso"
+        os:          "windows"
+        subscription: "SC-CloudOps-Pavaso-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationpavaso.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+    # ATFS
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "ATFS"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-ATFS-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationatfs.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "ATFS"
+        os:          "windows"
+        subscription: "SC-CloudOps-ATFS-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationatfs.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+    # GoePN
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "GoePN"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-GoEPN-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationgoepn.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "GoePN"
+        os:          "windows"
+        subscription: "SC-CloudOps-GoEPN-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationgoepn.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+    # OR13
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "OR13"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-OR13-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationor13.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "OR13"
+        os:          "windows"
+        subscription: "SC-CloudOps-OR13-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationor13.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+    # eRecordingPartners
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "eRecordingPartners"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-eRecordingPartners-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationepn.blob.core.windows.net/crowdstrike/installcrowdstrikefalcononubuntumachines.sh"
+
+    - template: tenant-job-template-crowdstrike.yml
+      parameters:
+        tenantName:  "eRecordingPartners"
+        os:          "windows"
+        subscription: "SC-CloudOps-eRecordingPartners-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALLER_URL: "https://clopsautomationepn.blob.core.windows.net/crowdstrike/InstallCrowdstrikeAndTagWindows.ps1"
+
+# ────────────────────────────────────────────────────────────────────────────
+- stage: DeployTenable
+  displayName: "Deploy Tenable Sensors"
+  dependsOn: []
+  jobs:
+    # ORTIG
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "ORTIG"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-ORTIG-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stsrestorage.blob.core.windows.net/tenablenessusagent/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stsrestorage.blob.core.windows.net/tenablenessusagent/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "ORTIG"
+        os:          "windows"
+        subscription: "SC-CloudOps-ORTIG-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stsrestorage.blob.core.windows.net/tenablenessusagent/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stsrestorage.blob.core.windows.net/tenablenessusagent/linknessusagent.ps1"
+
+    # Pavaso
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "Pavaso"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-Pavaso-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomation.blob.core.windows.net/tenableinstall/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stclopsautomation.blob.core.windows.net/tenableinstall/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "Pavaso"
+        os:          "windows"
+        subscription: "SC-CloudOps-Pavaso-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomation.blob.core.windows.net/tenableinstall/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stclopsautomation.blob.core.windows.net/tenableinstall/linknessusagent.ps1"
+
+    # ATFS
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "ATFS"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-ATFS-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationatfs.blob.core.windows.net/tenableinstall/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stclopsautomationatfs.blob.core.windows.net/tenableinstall/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "ATFS"
+        os:          "windows"
+        subscription: "SC-CloudOps-ATFS-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationatfs.blob.core.windows.net/tenableinstall/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stclopsautomationatfs.blob.core.windows.net/tenableinstall/linknessusagent.ps1"
+
+    # GoePN
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "GoePN"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-GoEPN-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationgoepn.blob.core.windows.net/tenable/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stclopsautomationgoepn.blob.core.windows.net/tenable/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "GoePN"
+        os:          "windows"
+        subscription: "SC-CloudOps-GoEPN-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationgoepn.blob.core.windows.net/tenable/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stclopsautomationgoepn.blob.core.windows.net/tenable/linknessusagent.ps1"
+
+    # OR13
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "OR13"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-OR13-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationor13.blob.core.windows.net/tenable/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stclopsautomationor13.blob.core.windows.net/tenable/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "OR13"
+        os:          "windows"
+        subscription: "SC-CloudOps-OR13-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationor13.blob.core.windows.net/tenable/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stclopsautomationor13.blob.core.windows.net/tenable/linknessusagent.ps1"
+
+    # eRecordingPartners
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "eRecordingPartners"
+        os:          "ubuntu"
+        subscription: "SC-CloudOps-eRecordingPartners-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationepn.blob.core.windows.net/tenable/installNesusAgent.sh"
+        LINK_URL_BASE:    "https://stclopsautomationepn.blob.core.windows.net/tenable/linknessusagent.sh"
+
+    - template: tenant-job-template-tenable.yml
+      parameters:
+        tenantName:  "eRecordingPartners"
+        os:          "windows"
+        subscription: "SC-CloudOps-eRecordingPartners-Automation-SP"
+        selectedTenants: ${{ parameters.selectedTenants }}
+        INSTALL_URL_BASE: "https://stclopsautomationepn.blob.core.windows.net/tenable/installNesusAgent.ps1"
+        LINK_URL_BASE:    "https://stclopsautomationepn.blob.core.windows.net/tenable/linknessusagent.ps1"

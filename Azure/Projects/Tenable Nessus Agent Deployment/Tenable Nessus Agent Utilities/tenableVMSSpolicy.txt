@@ -1,0 +1,74 @@
+{
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.Compute/virtualMachineScaleSets"
+    },
+    "then": {
+      "effect": "deployIfNotExists",
+      "details": {
+        "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Compute/virtualMachineScaleSets/extensions/publisher",
+              "equals": "Microsoft.Azure.Extensions"
+            },
+            {
+              "field": "Microsoft.Compute/virtualMachineScaleSets/extensions/type",
+              "equals": "CustomScript"
+            }
+          ]
+        },
+        "roleDefinitionIds": [
+          "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+        ],
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "vmssName": {
+                  "type": "string"
+                }
+              },
+              "variables": {
+                "vmssResourceGroup": "[resourceGroup().name]"
+              },
+              "resources": [
+                {
+                  "apiVersion": "2020-06-01",
+                  "type": "Microsoft.Compute/virtualMachineScaleSets/extensions",
+                  "name": "[concat(parameters('vmssName'), '/NessusAgentInstallation')]",
+                  "location": "[resourceGroup().location]",
+                  "properties": {
+                    "publisher": "Microsoft.Azure.Extensions",
+                    "type": "CustomScript",
+                    "typeHandlerVersion": "2.0",
+                    "autoUpgradeMinorVersion": true,
+                    "settings": {
+                      "fileUris": [
+                        "https://aksscalingautomation.blob.core.windows.net/tenableinstall/installNesusAgent.sh"
+                      ],
+                      "commandToExecute": "[concat('bash installNesusAgent.sh ', parameters('vmssName'), ' ', variables('vmssResourceGroup'))]"
+                    },
+                    "protectedSettings": {}
+                  }
+                }
+              ]
+            },
+            "parameters": {
+              "vmssName": {
+                "value": "[field('name')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {}
+}

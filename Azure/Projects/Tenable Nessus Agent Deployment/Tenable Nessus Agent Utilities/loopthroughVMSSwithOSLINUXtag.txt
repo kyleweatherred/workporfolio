@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Get a list of all subscriptions
+subscriptions=$(az account list --query "[].id" -o tsv)
+
+# Iterate over each subscription
+while read -r subscriptionId; do
+    echo "Switching to subscription: $subscriptionId"
+    az account set --subscription "$subscriptionId"
+
+    # Get list of all VMSS instances with OS:LINUX tag within the current subscription
+    vmssInstances=$(az vmss list --query "[?tags.OS=='LINUX'].{resourceGroup: resourceGroup, vmssName: name}" -o tsv)
+
+    # Iterate through each VMSS instance within the current subscription
+    while IFS=$'\t' read -r resourceGroup vmssName; do
+        echo "Getting instance IDs for VMSS $vmssName in resource group $resourceGroup"
+        instanceIds=$(az vmss list-instances --resource-group "$resourceGroup" --name "$vmssName" --query "[].instanceId" -o tsv)
+        for instanceId in $instanceIds; do
+            echo "Running script on instance $instanceId of VMSS $vmssName in resource group $resourceGroup"
+            az vmss run-command invoke --resource-group "$resourceGroup" --name "$vmssName" --instance-id "$instanceId" --command-id RunShellScript --scripts "$scriptCommand"
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to run script on instance $instanceId of VMSS $vmssName in resource group $resourceGroup"
+            fi
+        done
+    done <<< "$vmssInstances"
+done <<< "$subscriptions"

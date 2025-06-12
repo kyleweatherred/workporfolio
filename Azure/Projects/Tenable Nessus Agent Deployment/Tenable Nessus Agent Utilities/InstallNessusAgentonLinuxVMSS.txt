@@ -1,0 +1,89 @@
+{
+  "properties": {
+    "displayName": "Install Nessus Agent on a Specific Linux VMSS if NESSUSAGENT:INSTALLED Tag IS NOT Present",
+    "policyType": "Custom",
+    "mode": "All",
+    "metadata": {
+      "createdBy": "42a90e84-7577-45c2-b3eb-05a840d024e3",
+      "createdOn": "2024-03-04T04:46:44.4364121Z",
+      "updatedBy": null,
+      "updatedOn": null
+    },
+    "version": "1.0.0",
+    "parameters": {
+      "vmssName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "VMSS Name",
+          "description": "The name of the VMSS to install the Nessus Agent on."
+        }
+      },
+      "resourceGroupName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Resource Group Name",
+          "description": "The name of the resource group where the VMSS is located."
+        }
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Compute/virtualMachineScaleSets"
+          },
+          {
+            "field": "name",
+            "equals": "[parameters('vmssName')]"
+          },
+          {
+            "field": "tags['OS']",
+            "equals": "LINUX"
+          },
+          {
+            "field": "tags['NESSUSAGENT:INSTALLED']",
+            "exists": "false"
+          }
+        ]
+      },
+      "then": {
+        "effect": "deployIfNotExists",
+        "details": {
+          "type": "Microsoft.Automation/automationAccounts/jobs",
+          "existenceScope": "subscription",
+          "deployment": {
+            "properties": {
+              "mode": "Incremental",
+              "runbook": {
+                "name": "InstalTenableNessusAgentonALLLinuxVMSS"
+              },
+              "parameters": {
+                "vmssName": {
+                  "value": "[parameters('vmssName')]"
+                },
+                "resourceGroupName": {
+                  "value": "[parameters('resourceGroupName')]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "versions": [
+      "1.0.0"
+    ]
+  },
+  "id": "/providers/Microsoft.Management/managementGroups/ORTitleTech-MG-IAC/providers/Microsoft.Authorization/policyDefinitions/0456fab5-493a-4781-a493-f4ca3a782e84",
+  "type": "Microsoft.Authorization/policyDefinitions",
+  "name": "0456fab5-493a-4781-a493-f4ca3a782e84",
+  "systemData": {
+    "createdBy": "kweatherred@oldrepublictitle.com",
+    "createdByType": "User",
+    "createdAt": "2024-03-04T04:46:44.4084767Z",
+    "lastModifiedBy": "kweatherred@oldrepublictitle.com",
+    "lastModifiedByType": "User",
+    "lastModifiedAt": "2024-03-04T04:46:44.4084767Z"
+  }
+}

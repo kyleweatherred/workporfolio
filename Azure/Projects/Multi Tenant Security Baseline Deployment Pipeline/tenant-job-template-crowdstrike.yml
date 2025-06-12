@@ -1,0 +1,73 @@
+parameters:
+  tenantName: ''
+  os: ''
+  subscription: ''
+  selectedTenants: ''
+  INSTALLER_URL: ''
+
+jobs:
+
+- ${{ if eq(parameters.os, 'ubuntu') }}:
+  - job: CrowdStrike_${{ parameters.tenantName }}_${{ parameters.os }}_job
+    displayName: "Deploy CrowdStrike on ${{ parameters.tenantName }} (Ubuntu)"
+    timeoutInMinutes: 300
+    condition: >-
+      ${{ or(eq(parameters.selectedTenants, ''),
+              contains(parameters.selectedTenants, parameters.tenantName)) }}
+    pool:
+      name:  'CloudOps Automation'
+      demands:
+        - Agent.Name -equals ubuntu-2404-agent
+
+    steps:
+      - checkout: self
+
+      - script: |
+          echo "Deploying CrowdStrike sensor for tenant: ${{ parameters.tenantName }} (Ubuntu)"
+          echo "Subscription:  ${{ parameters.subscription }}"
+          echo "Installer URL: ${{ parameters.INSTALLER_URL }}"
+        displayName: "Echo CrowdStrike Parameters"
+
+      - script: |
+          bash "$(Build.SourcesDirectory)/security-baseline-pipeline/DownloadCrowdStrikeandInstallonAllUbuntuVMsandVMSSs.sh"
+        displayName: "Run Ubuntu CrowdStrike Bash Script"
+        env:
+          INSTALLER_URL: "${{ parameters.INSTALLER_URL }}"
+          TAG_NAME:      "CROWDSTRIKE"
+          TAG_VALUE:     "INSTALLED"
+
+
+- ${{ if eq(parameters.os, 'windows') }}:
+  - job: CrowdStrike_${{ parameters.tenantName }}_${{ parameters.os }}_job
+    displayName: "Deploy CrowdStrike on ${{ parameters.tenantName }} (Windows)"
+    timeoutInMinutes: 300
+    condition: >-
+      ${{ or(eq(parameters.selectedTenants, ''),
+              contains(parameters.selectedTenants, parameters.tenantName)) }}
+    pool:
+      name:  'CloudOps Automation'
+      demands:
+        - Agent.Name -equals CLOPSVMORTIG
+
+    steps:
+      - checkout: self
+
+      - script: |
+          echo "Deploying CrowdStrike sensor for tenant: ${{ parameters.tenantName }} (Windows)"
+          echo "Subscription:  ${{ parameters.subscription }}"
+          echo "Installer URL: ${{ parameters.INSTALLER_URL }}"
+        displayName: "Echo CrowdStrike Parameters"
+
+      - task: AzureCLI@2
+        displayName: "Run Windows CrowdStrike PowerShell Script"
+        inputs:
+          azureSubscription: "${{ parameters.subscription }}"
+          scriptLocation:    scriptPath
+          scriptType:        pscore
+          scriptPath:        "$(Build.SourcesDirectory)/security-baseline-pipeline/DownloadCrowdStrikeandInstallonAllWindowsVMsAndVMSSs.ps1"
+          workingDirectory:  "$(System.DefaultWorkingDirectory)"
+        env:
+          INSTALLER_URL: "${{ parameters.INSTALLER_URL }}"
+          GROUPING_TAGS: "ORT-Servers"
+          TAG_KEY:       "CROWDSTRIKE"
+          TAG_VALUE:     "INSTALLED"

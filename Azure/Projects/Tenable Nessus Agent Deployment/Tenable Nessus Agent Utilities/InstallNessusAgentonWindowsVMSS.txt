@@ -1,0 +1,79 @@
+# Authenticate using managed identity
+$null = Connect-AzAccount -Identity
+
+# Import AzureRM module
+Import-Module Az
+
+# Define the tag key and value for Windows VMSS
+$tagKey = "OS"
+$tagValue = "WINDOWS"
+
+# Get all VMSS instances with the specified tag
+$vmssList = Get-AzResource -TagName $tagKey -TagValue $tagValue -ResourceType "Microsoft.Compute/virtualMachineScaleSets"
+
+# Define the Nessus Agent installer URL
+$NESSUS_INSTALLER_URL = "https://aksscalingautomation.blob.core.windows.net/tenableinstall/NessusAgent-10.5.1-x64.msi"
+
+# Define the Nessus linking key
+$LINKING_KEY = "196cf2c87c5bc1aacff38e57f205d526019714f6b3bb8e2b312c0ce921b8d9c2"
+
+# Define the Agent Group
+$AGENT_GROUP = "Azure Servers"
+
+# Define TVM Network if needed
+$TVM_NETWORK = "TT-Title_Tech"
+
+# Loop through each VMSS instance and execute the Nessus Agent installation script
+foreach ($vmss in $vmssList) {
+    $resourceGroupName = $vmss.ResourceGroupName
+    $vmssName = $vmss.Name
+
+    # Define the script content
+    $scriptContent = @"
+# Set strict mode
+Set-StrictMode -Version Latest
+
+# Define log file location
+\$LOG_FILE = "C:\temp\nessus_install.log"
+# Start logging
+Write-Output "Starting Nessus Agent installation" | Out-File -FilePath \$LOG_FILE
+
+# Download Nessus Agent installer
+Invoke-WebRequest -Uri "$NESSUS_INSTALLER_URL" -OutFile "C:\temp\NessusAgentInstaller.msi" -UseBasicParsing
+Write-Output "Downloaded Nessus Agent installer from $NESSUS_INSTALLER_URL" | Out-File -Append -FilePath \$LOG_FILE
+
+# Install Nessus Agent
+Start-Process -FilePath "C:\temp\NessusAgentInstaller.msi" -ArgumentList "/qn" -Wait
+Write-Output "Installed Nessus Agent" | Out-File -Append -FilePath \$LOG_FILE
+
+# Link Nessus Agent to the server with TVM network
+& "C:\Program Files\Tenable\Nessus Agent\nessuscli.exe" agent link --key="$LINKING_KEY" --name="$env:COMPUTERNAME" --groups="$AGENT_GROUP" --tvm-network="$TVM_NETWORK"
+Write-Output "Linked Nessus Agent to the server" | Out-File -Append -FilePath \$LOG_FILE
+
+# Enable Nessus Agent service
+Set-Service -Name "Tenable Nessus Agent" -StartupType Automatic
+Write-Output "Enabled Nessus Agent service" | Out-File -Append -FilePath \$LOG_FILE
+
+# Start Nessus Agent service
+Start-Service -Name "Tenable Nessus Agent"
+Write-Output "Started Nessus Agent service" | Out-File -Append -FilePath \$LOG_FILE
+
+# Apply tag to indicate Nessus Agent installation
+Write-Output "Applying tag NESSUSAGENT:INSTALLED..." | Out-File -Append -FilePath \$LOG_FILE
+az resource tag --tags NESSUSAGENT:INSTALLED=true --id $($vmss.ResourceId) | Out-File -Append -FilePath \$LOG_FILE
+"@
+
+    # Convert PowerShell script content to Base64
+    $encodedScript = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($scriptContent))
+
+    # Define the script parameters
+    $scriptParams = @{
+        CommandId = "RunPowerShellScript"
+        ResourceGroupName = $resourceGroupName
+        VMSSName = $vmssName
+        ScriptContent = $encodedScript
+    }
+
+    # Execute the PowerShell script on the VMSS instances
+    Invoke-AzVMSSRunCommand @scriptParams
+}

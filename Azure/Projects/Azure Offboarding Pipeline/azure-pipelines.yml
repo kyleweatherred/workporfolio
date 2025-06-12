@@ -1,0 +1,24 @@
+trigger:
+- main  # Adjust the branch name as needed
+
+variables:
+  adUserInput: "user1@domain.com,user2@domain.com"
+  adoUserInput: "ado1@domain.com,ado2@domain.com"
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: '86c508b4-25a2-487e-902c-3ea274ec7d2d'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Run the PowerShell script
+      pwsh \AzTenant_User_Term-v1.ps1

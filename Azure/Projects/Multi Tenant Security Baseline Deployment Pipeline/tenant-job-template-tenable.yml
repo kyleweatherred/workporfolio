@@ -1,0 +1,79 @@
+parameters:
+  tenantName: ''
+  os: ''
+  subscription: ''
+  selectedTenants: ''
+  INSTALL_URL_BASE: ''
+  LINK_URL_BASE: ''
+
+jobs:
+
+- ${{ if eq(parameters.os, 'ubuntu') }}:
+  - job: Tenable_${{ parameters.tenantName }}_ubuntu_job
+    displayName: "Deploy Tenable on ${{ parameters.tenantName }} (Ubuntu)"
+    timeoutInMinutes: 300
+    condition: >-
+      ${{ or(eq(parameters.selectedTenants, ''),
+              contains(parameters.selectedTenants, parameters.tenantName)) }}
+    pool:
+      name:  'CloudOps Automation'
+      demands:
+        - Agent.Name -equals ubuntu-2404-agent
+
+    steps:
+      - checkout: self
+
+      - script: |
+          echo "Deploying Tenable sensor for tenant: ${{ parameters.tenantName }} (Ubuntu)"
+          echo "Subscription:  ${{ parameters.subscription }}"
+          echo "Install URL:   ${{ parameters.INSTALL_URL_BASE }}"
+          echo "Link URL:      ${{ parameters.LINK_URL_BASE }}"
+        displayName: "Echo Tenable Parameters"
+
+      - script: |
+          bash "$(Build.SourcesDirectory)/security-baseline-pipeline/LoopThroughAllLinuxVMsandVMSSandInstallTenableNessusAgentFinal.sh"
+        displayName: "Run Ubuntu Tenable Bash Script"
+        env:
+          TENANT:           "${{ parameters.tenantName }}"
+          INSTALL_URL_BASE: "${{ parameters.INSTALL_URL_BASE }}"
+          LINK_URL_BASE:    "${{ parameters.LINK_URL_BASE }}"
+          TAG_KEY:          "NESSUSAGENT"
+          TAG_VALUE:        "INSTALLED"
+
+
+- ${{ if eq(parameters.os, 'windows') }}:
+  - job: Tenable_${{ parameters.tenantName }}_windows_job
+    displayName: "Deploy Tenable on ${{ parameters.tenantName }} (Windows)"
+    timeoutInMinutes: 300
+    condition: >-
+      ${{ or(eq(parameters.selectedTenants, ''),
+              contains(parameters.selectedTenants, parameters.tenantName)) }}
+    pool:
+      name:  'CloudOps Automation'
+      demands:
+        - Agent.Name -equals CLOPSVMORTIG
+
+    steps:
+      - checkout: self
+
+      - script: |
+          echo "Deploying Tenable sensor for tenant: ${{ parameters.tenantName }} (Windows)"
+          echo "Subscription:  ${{ parameters.subscription }}"
+          echo "Install URL:   ${{ parameters.INSTALL_URL_BASE }}"
+          echo "Link URL:      ${{ parameters.LINK_URL_BASE }}"
+        displayName: "Echo Tenable Parameters"
+
+      - task: AzureCLI@2
+        displayName: "Run Windows Tenable PowerShell Script"
+        inputs:
+          azureSubscription: "${{ parameters.subscription }}"
+          scriptLocation:    scriptPath
+          scriptType:        pscore
+          scriptPath:        "$(Build.SourcesDirectory)/security-baseline-pipeline/LoopThroughAllWindowsVMsandVMSSandInstallTenableNessusAgentFinal.ps1"
+          workingDirectory:  "$(System.DefaultWorkingDirectory)"
+        env:
+          TENANT:           "${{ parameters.tenantName }}"
+          INSTALL_URL_BASE: "${{ parameters.INSTALL_URL_BASE }}"
+          LINK_URL_BASE:    "${{ parameters.LINK_URL_BASE }}"
+          TAG_KEY:          "NESSUSAGENT"
+          TAG_VALUE:        "INSTALLED"

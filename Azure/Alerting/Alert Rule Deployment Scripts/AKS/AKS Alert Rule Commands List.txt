@@ -1,0 +1,182 @@
+az monitor scheduled-query create \
+  --name "Average AKS Node Memory Utilization Exceeds 85 Percent for 5 Minutes -- aks-arc-dev-ortt-eus2" \
+  --resource-group "rg-arc-dev-ortt-eus2" \
+  --scopes "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --condition "avg AggregatedValue from 'AggregatedValue' >= 85 resource id _ResourceId at least 1 violations out of 1 aggregated points" \
+  --condition-query AggregatedValue="let endDateTime = now(); \
+let startDateTime = ago(1h); \
+let trendBinSize = 1m; \
+let capacityCounterName = 'memoryCapacityBytes'; \
+let usageCounterName = 'memoryRssBytes'; \
+KubeNodeInventory \
+| where TimeGenerated < endDateTime \
+| where TimeGenerated >= startDateTime \
+| distinct ClusterName, Computer, _ResourceId \
+| join hint.strategy=shuffle ( \
+  Perf \
+  | where TimeGenerated < endDateTime \
+  | where TimeGenerated >= startDateTime \
+  | where ObjectName == 'K8SNode' \
+  | where CounterName == capacityCounterName \
+  | summarize LimitValue = max(CounterValue) by Computer, CounterName, bin(TimeGenerated, trendBinSize) \
+  | project Computer, CapacityStartTime = TimeGenerated, CapacityEndTime = TimeGenerated + trendBinSize, LimitValue \
+) on Computer \
+| join kind=inner hint.strategy=shuffle ( \
+  Perf \
+  | where TimeGenerated < endDateTime + trendBinSize \
+  | where TimeGenerated >= startDateTime - trendBinSize \
+  | where ObjectName == 'K8SNode' \
+  | where CounterName == usageCounterName \
+  | project Computer, UsageValue = CounterValue, TimeGenerated \
+) on Computer \
+| where TimeGenerated >= CapacityStartTime and TimeGenerated < CapacityEndTime \
+| project ClusterName, Computer, TimeGenerated, UsagePercent = UsageValue * 100.0 / LimitValue, _ResourceId \
+| summarize AggregatedValue = avg(UsagePercent) by bin(TimeGenerated, trendBinSize), ClusterName, _ResourceId" \
+  --description "One or more nodes in the AKS cluster, aks-arc-dev-ortt-eus2, have sustained an average memory usage above 85% for over 5 minutes, which can lead to performance degradation or out-of-memory (OOM) issues. Investigate container resource requests and limits, optimize workloads, or scale resources to maintain cluster stability." \
+  --evaluation-frequency "PT5M" \
+  --window-size "PT5M" \
+  --severity 1 \
+  --action-groups "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+----------
+
+az monitor metrics alert create \
+  --name "Average CPU Percentage for AKS Cluster, aks-arc-dev-ortt-eus2, has exceeded 85 Percent for 15 Minutes" \
+  --resource-group "AlertPolicy" \
+  --description "Nodes in AKS cluster aks-arc-dev-ortt-eus2 have sustained an average CPU usage above 85% for at least 15 minutes. This could indicate a heavy or unoptimized workload, potentially leading to performance bottlenecks. Investigate running pods, optimize resource requests and limits, or consider scaling the cluster to restore normal performance." \
+  --severity 1 \
+  --scopes "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --evaluation-frequency "PT1M" \
+  --window-size "PT15M" \
+  --condition "avg node_cpu_usage_percentage >= 85" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+---------
+
+az monitor metrics alert create \
+  --name "Average Disk Used Percentage for AKS Cluster, aks-arc-dev-ortt-eus2, has exceeded 85 Percent for 15 Minutes" \
+  --resource-group "Automation" \
+  --description "Average Disk usage for AKS cluster aks-arc-dev-ortt-eus2 has maintained an average of 85% or higher for over the last 15 minutes. This may indicate storage pressure. Consider cleaning up unused data or increasing disk capacity to prevent potential issues." \
+  --severity 2 \
+  --scopes "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --evaluation-frequency "PT1M" \
+  --window-size "PT15M" \
+  --condition "avg node_disk_usage_percentage >= 85" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --tags "ENVIRONMENT=DEV" "LOB=TITLETECH" "PROJECT=ECLOSING"
+
+
+-----------
+
+az monitor scheduled-query create \
+  --name "Average Node CPU Utilization Exceeds 85 Percent for 10 Minutes -- aks-arc-dv-ortt-eus2" \
+  --resource-group "rg-arc-dev-ortt-eus2" \
+  --scopes "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --description "Node(s) in AKS cluster aks-arc-dv-ortt-eus2 have maintained an average CPU utilization above 85% for over 10 minutes. High CPU usage can indicate a heavy or unoptimized workload, potentially causing performance bottlenecks or disruptions. Investigate workloads, consider resource scaling, or optimize container CPU limits to ensure stable cluster performance." \
+  --severity 1 \
+  --evaluation-frequency "PT5M" \
+  --window-size "PT10M" \
+  --condition "avg AggregatedValue from 'AggregatedValue' >= 85 resource id _ResourceId at least 1 violations out of 1 aggregated points" \
+  --condition-query AggregatedValue="let endDateTime = now(); \
+let startDateTime = ago(10m); \
+let trendBinSize = 1m; \
+let capacityCounterName = 'cpuCapacityNanoCores'; \
+let usageCounterName = 'cpuUsageNanoCores'; \
+KubeNodeInventory \
+| where TimeGenerated < endDateTime \
+| where TimeGenerated >= startDateTime \
+| distinct ClusterName, Computer, _ResourceId \
+| join hint.strategy=shuffle (Perf \
+| where TimeGenerated < endDateTime \
+| where TimeGenerated >= startDateTime \
+| where ObjectName == 'K8SNode' \
+| where CounterName == capacityCounterName \
+| summarize LimitValue = max(CounterValue) by Computer, CounterName, bin(TimeGenerated, trendBinSize) \
+| project Computer, CapacityStartTime = TimeGenerated, CapacityEndTime = TimeGenerated + trendBinSize, LimitValue) on Computer \
+| join kind=inner hint.strategy=shuffle (Perf \
+| where TimeGenerated < endDateTime + trendBinSize \
+| where TimeGenerated >= startDateTime - trendBinSize \
+| where ObjectName == 'K8SNode' \
+| where CounterName == usageCounterName \
+| project Computer, UsageValue = CounterValue, TimeGenerated) on Computer \
+| where TimeGenerated >= CapacityStartTime and TimeGenerated < CapacityEndTime \
+| project ClusterName, Computer, TimeGenerated, UsagePercent = UsageValue * 100.0 / LimitValue, _ResourceId \
+| summarize AggregatedValue = avg(UsagePercent) by bin(TimeGenerated, trendBinSize), ClusterName, _ResourceId" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+
+-------------
+
+az monitor metrics alert create \
+  --name "Cluster Health Degraded for AKS Cluster, aks-arc-dev-ortt-eus2" \
+  --resource-group "AlertPolicy" \
+  --description "The cluster health metric for aks-arc-dev-ortt-eus2 has fallen below 1, indicating a potential partial outage or disruption. Please review node statuses and cluster logs to restore full health." \
+  --severity 0 \
+  --scopes "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --evaluation-frequency "PT1M" \
+  --window-size "PT5M" \
+  --condition "avg cluster_autoscaler_cluster_safe_to_autoscale < 1" \
+  --auto-mitigate true \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_critical_alerting" \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+------------------------
+
+az monitor activity-log alert create \
+  --name "Managed Cluster Scaling Operation STARTED for AKS Cluster, aks-arc-dev-ortt-eus2" \
+  --resource-group "AlertPolicy" \
+  --scope "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourceGroups/rg-arc-dev-ortt-eus2/providers/Microsoft.ContainerService/managedClusters/aks-arc-dev-ortt-eus2" \
+  --condition "category=Administrative and operationName=Microsoft.ContainerService/managedClusters/write" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --description "A scaling operation has STARTED on aks-arc-dev-ortt-eus2." \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+------------------------
+
+
+
+
+*************************************** Didn't work :( ******************************************************
+
+az monitor activity-log alert create \
+  --name "Managed Cluster Scaling Operation SUCCEEDED for AKS Cluster, aks-arc-dev-ortt-eus2" \
+  --resource-group "AlertPolicy" \
+  --scope "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c" \
+  --condition "category=Administrative" \
+  --condition "operationName='Microsoft.ContainerService/managedClusters/write'" \
+  --condition "status=Succeeded" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --description "A scaling operation has SUCCEEDED on aks-arc-dev-ortt-eus2. The cluster may have scaled or undergone a reconfiguration. Confirm the changes align with your expectations." \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+
+
+
+
+az monitor activity-log alert create \
+  --name "Managed Cluster Stop Operation for AKS Cluster, aks-arc-dev-ortt-eus2" \
+  --resource-group "AlertPolicy" \
+  --scope "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c" \
+  --condition "category=Administrative" \
+  --condition "operationName='Microsoft.ContainerService/managedClusters/stop/action'" \
+  --action "/subscriptions/eec09a64-2ef6-4fa1-9a28-1fed02b86f7c/resourcegroups/alertpolicy/providers/microsoft.insights/actiongroups/arc_dev_informational_alerting" \
+  --description "An operation to stop the AKS cluster aks-arc-dev-ortt-eus2 has been initiated. This may lead to downtime for your workloads. Please verify if this action was expected and take necessary steps to maintain cluster availability." \
+  --tags "ACTOR=ARC" "ENVIRONMENT=DEV" "LOB=TITLETECH" "OWNER=ARC" "PROJECT=ARC" "STAKEHOLDER=ARC"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
